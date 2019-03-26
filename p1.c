@@ -7,34 +7,60 @@
 # define MAXPORSALA 100
 
 typedef struct {
+
+    /* informacoes acerca do evento que explicitadas na funcao a */
+
     char descricao[MAXCHAR];
-    int dia;        /*formato ddmmaaaa*/
-    int tempo;      /*formato hhmm*/
-    int duracao;    /*em minutos, entre 1 e 1440*/
-    int sala;       /*inteiro de 1 a 10*/
+    int dia;                /*formato ddmmaaaa*/
+    int tempo;              /*formato hhmm*/
+    int duracao;            /*em minutos, entre 1 e 1440*/
+    int sala;               /*inteiro de 1 a 10*/
     char responsavel[MAXCHAR];
     char participantes[PARTICIPANTES][MAXCHAR];
-    int n_participantes;
-    int inicio;     /*inicio em minutos*/
-    int fim;        /*fim em minutos*/
-    int dia_i;      /*dia no formato aaaammdd*/
+
+    /* valores extra que sao usados ao longo do programa, de modo a facilitar algumas funcoes */
+
+    int n_participantes;    /* numero de participantes do respetivo evento */
+    int inicio;             /* inicio do evento em minutos */
+    int fim;                /* fim do evento em minutos*/
+    int data;               /* dia e tempo do evento no formato ammddhhmm -> toma-se 2019 como ano 0,
+                                visto que nenhum evento pode ser agendado para uma data anterior a 2019 */
+
 } Evento;
 
+
+/* vetores globais, visto que sao utilizados e modificados por um grande numero de funcoes */
+
+Evento eventos[SALAS][MAXPORSALA] = {0};    /* tabela de eventos por sala */
+int ocup_sala[10] = {0};                    /* guarda a ocupação de cada sala */ 
+
+
+void funcao_a();
 Evento le_input_a();
+Evento calcula_variaveis_extra(Evento e);
 int incompatibilidade_sala(Evento eventos[MAXPORSALA], Evento e, int n_eventos);
 int incompatibilidade_pessoa(Evento eventos[SALAS][MAXPORSALA], Evento e, int ocup_sala[10], char pessoa[MAXCHAR]);
 void eventos_por_sala(Evento eventos[MAXPORSALA], int n_eventos);
 
+
 int main () {
     char c;
-    Evento e;
-    int i, sala, adiciona = 0;
-    Evento eventos[SALAS][MAXPORSALA] = {0};    /* tabela de eventos por sala */
-    int ocup_sala[10] = {0};                    /* guarda a ocupação de cada sala */ 
     for (;;) 
         switch (c = getchar()) {
             case 'a':
-                e = le_input_a();
+                funcao_a();
+            case 's':
+                scanf("%d", &sala);
+                eventos_por_sala(eventos[sala], ocup_sala[sala]);
+                break;
+            case 'x':
+                return 0;
+        }
+}
+
+void funcao_a() {
+    int i, sala, adiciona = 0;
+    Evento e = le_input_a();
                 if (incompatibilidade_sala(eventos[e.sala], e, ocup_sala[e.sala])) {
                     printf("Impossivel agendar evento %s. Sala%d ocupada.\n", e.descricao, e.sala);
                     adiciona++;
@@ -62,13 +88,7 @@ int main () {
                 printf("%d\n", e.n_participantes);
                 for (i=0; i < e.n_participantes; i++) printf("%s\n", e.participantes[i]); 
                 printf("%d\n",e.fim);  */
-            case 's':
-                scanf("%d", &sala);
-                eventos_por_sala(eventos[sala], ocup_sala[sala]);
-                break;
-            case 'x':
-                return 0;
-        }
+
 }
 
 Evento le_input_a() {
@@ -92,10 +112,14 @@ Evento le_input_a() {
         else e.participantes[j][i++] = c;
     }
     e.participantes[j][i] = '\0';
+
+    /* calcular valor das restantes variaveis da struct Evento */
+
     e.n_participantes = j + 1;
     e.inicio = (e.tempo/100 * 60 + e.tempo%100);
     e.fim = e.inicio + e.duracao;
-    e.dia_i = (e.dia/1000000) + ((e.dia/10000)%100)*100 + (e.dia%10000)*10000;
+    e.data = e.tempo + (e.dia/1000000)*10000 + ((e.dia/10000)%100)*1000000 + ((e.dia%10000)-2019)*100000000; /* consideramos que 2019 e o ano 0 */
+    printf("%d\n", e.data);
     return e;
 }
 
