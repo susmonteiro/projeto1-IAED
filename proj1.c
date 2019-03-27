@@ -34,10 +34,10 @@ int main() {
             case 's':
                 lista_eventos_sala();
                 break;
-            /*case 'r':
+            case 'r':
                 apaga_evento();
                 break;
-            case 'i':
+            /*case 'i':
                 altera_hora();
                 break;
             case 't':
@@ -99,7 +99,7 @@ Evento cria_evento() {
     token = strtok(NULL, ":");
     e.duracao = atoi(token);
     token = strtok(NULL, ":");
-    e.sala = atoi(token);
+    e.sala = atoi(token) - 1;   /* as salas 1 a 10 ocupam a posicao 0 a 9 do vetor eventos */
     token = strtok(NULL, ":");
     strcpy(e.responsavel, token);
     while ((token = strtok(NULL, ":"))!= NULL) strcpy(e.participantes[i++], token);
@@ -119,7 +119,7 @@ int incompatibilidade_sala(Evento e) {
     int evento;    /*incompatibilidade -> tem o valor 1 caso a sala ja esteja ocupada */
     for (evento = 0; evento < ocup_sala[e.sala]; evento++) {
         if (eventos_sobrepostos(e, eventos[e.sala][evento])) {
-            printf("Impossivel agendar evento %s. Sala%d ocupada.\n", e.descricao, e.sala);
+            printf("Impossivel agendar evento %s. Sala%d ocupada.\n", e.descricao, ++e.sala);
             return SUCESSO;
         }
     }
@@ -170,11 +170,12 @@ void lista_eventos_sala() {
     int j, evento, sala;
 
     scanf("%d", &sala);
+    sala--;
     qsort(eventos[sala], ocup_sala[sala], sizeof(Evento), compare);
     for (evento = 0; evento < ocup_sala[sala]; evento++) {
-        printf("%s %d %d %d Sala%d %s\n* ", eventos[sala][evento].descricao,
+        printf("%s %08d %04d %d Sala%d %s\n* ", eventos[sala][evento].descricao,
          eventos[sala][evento].dia, eventos[sala][evento].tempo, eventos[sala][evento].duracao,
-          eventos[sala][evento].sala, eventos[sala][evento].responsavel);
+          eventos[sala][evento].sala + 1, eventos[sala][evento].responsavel);
         for (j = 0; j < eventos[sala][evento].n_participantes; j++) {
             printf("%s", eventos[sala][evento].participantes[j]);
             if (j + 1 != eventos[sala][evento].n_participantes) putchar(' ');
@@ -187,4 +188,22 @@ int compare(const void *a, const void *b)
     Evento *ia = (Evento *)a;
     Evento *ib = (Evento *)b;
     return ia->data - ib->data;
+}
+
+void apaga_evento() {
+    int sala, evento, i = 0, sucesso = 0;
+    char c, descricao[MAXCHAR];
+    c = getchar();  /* ignorar o primeiro espaco */
+    while ((c = getchar()) != '\n') descricao[i++] = c;
+    descricao[i] = '\0';
+    for (sala = 0; sala < SALAS && !sucesso; sala++) {
+        for (evento = 0; evento < ocup_sala[sala] && !sucesso; evento++) {
+            if (!strcmp(eventos[sala][evento].descricao, descricao)) {
+                eventos[sala][evento] = eventos[sala][ocup_sala[sala]-1];
+                ocup_sala[sala]--;
+                sucesso++;     /* para sair do loop anterior*/
+            }
+        }
+    }
+    if(!sucesso) printf("Evento %s inexistente.\n", descricao);
 }
