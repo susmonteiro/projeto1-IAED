@@ -9,6 +9,7 @@ void lista_todos_eventos();
 void lista_eventos_sala();
 int compare();
 void apaga_evento();
+Evento* procura_evento(char descricao[MAXCHAR], int *sala_coordenada);
 void altera_hora();
 void altera_duracao();
 void muda_sala();
@@ -37,10 +38,10 @@ int main() {
             case 'r':
                 apaga_evento();
                 break;
-            /*case 'i':
+            case 'i':
                 altera_hora();
                 break;
-            case 't':
+            /*case 't':
                 altera_duracao();
                 break;
             case 'm':
@@ -191,19 +192,67 @@ int compare(const void *a, const void *b)
 }
 
 void apaga_evento() {
-    int sala, evento, i = 0, sucesso = 0;
+    int i = 0;
+    int sala = 0;
     char c, descricao[MAXCHAR];
+    Evento *e;
     c = getchar();  /* ignorar o primeiro espaco */
     while ((c = getchar()) != '\n') descricao[i++] = c;
     descricao[i] = '\0';
-    for (sala = 0; sala < SALAS && !sucesso; sala++) {
-        for (evento = 0; evento < ocup_sala[sala] && !sucesso; evento++) {
-            if (!strcmp(eventos[sala][evento].descricao, descricao)) {
-                eventos[sala][evento] = eventos[sala][ocup_sala[sala]-1];
-                ocup_sala[sala]--;
-                sucesso++;     /* para sair do loop anterior*/
+    if ((e = procura_evento(descricao, &sala)) != INSUCESSO) {
+        *e = eventos[sala][ocup_sala[sala]-1];
+        ocup_sala[sala]--;
+    }
+}
+
+void altera_hora() {
+    char buffer[MAXBUFFER], descricao[MAXCHAR];
+    char *token;
+    int hora, i, adiciona = 0, sala = 0;
+    Evento *e, temp;
+
+    fgets(buffer, MAXBUFFER, stdin);
+    token = strtok(buffer, ":");
+    strcpy(descricao, token);
+    token = strtok(NULL, ":");
+    hora = atoi(token);
+    if ((e = procura_evento(descricao, &sala)) != INSUCESSO) {
+        temp = *e;
+        temp.data = temp.data - temp.tempo + hora;
+        temp.tempo = hora;
+        temp.inicio = (temp.tempo/100 * 60 + temp.tempo%100);
+        temp.fim = temp.inicio + temp.duracao; 
+        if (incompatibilidade_sala(temp)) adiciona++;
+        if (incompatibilidade_pessoa(temp, temp.responsavel)) {
+            printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", temp.descricao, temp.responsavel);
+            adiciona++;
+        }
+        for (i = 0; i < temp.n_participantes; i++) {
+            if (incompatibilidade_pessoa(temp, temp.participantes[i])) {
+            printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", temp.descricao, temp.participantes[i]);
+            adiciona++;
             }
         }
     }
-    if(!sucesso) printf("Evento %s inexistente.\n", descricao);
+    if (adiciona == 0) {
+        e->data = temp.data;
+        e->tempo = temp.tempo;
+        e->inicio = temp.inicio;
+        e->fim = temp.fim;
+    }; 
+}
+
+Evento* procura_evento(char descricao[MAXCHAR], int *sala_coordenada) {
+    int sala, evento;
+    for (sala = 0; sala < SALAS; sala++) {
+        for (evento = 0; evento < ocup_sala[sala]; evento++) {
+            if (!strcmp(eventos[sala][evento].descricao, descricao)) {
+                *sala_coordenada = sala;
+                return &eventos[sala][evento];
+            }
+        }
+    }
+    printf("Evento %s inexistente.\n", descricao);
+    return NULL;
+
 }
