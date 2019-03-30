@@ -120,7 +120,7 @@ Evento cria_evento() {
 }
 
 int incompatibilidade_sala(Evento e) {
-    int evento;    /*incompatibilidade -> tem o valor 1 caso a sala ja esteja ocupada */
+    int evento;  
     for (evento = 0; evento < ocup_sala[e.sala]; evento++) {
         if (eventos_sobrepostos(e, eventos[e.sala][evento])) {
             printf("Impossivel agendar evento %s. Sala%d ocupada.\n", e.descricao, ++e.sala);
@@ -131,7 +131,7 @@ int incompatibilidade_sala(Evento e) {
 }
 
 int eventos_sobrepostos(Evento e1, Evento e2) {
-    int incompatibilidade = 0;
+    int incompatibilidade = 0;  /*incompatibilidade -> tem o valor 1 caso a sala ja esteja ocupada */
     if (e2.dia == e1.dia && strcmp(e1.descricao, e2.descricao)) {
         if (e2.inicio < e1.inicio && e2.fim > e1.inicio) incompatibilidade++;
         if (e1.inicio < e2.inicio && e1.fim > e2.inicio) incompatibilidade++;
@@ -293,4 +293,24 @@ void altera_duracao() {
     }
 }
 
-void 
+void muda_sala() {
+    char buffer[MAXBUFFER], descricao[MAXCHAR];
+    char *token;
+    int nsala, sala = 0, evento = 0;
+    Evento temp;
+
+    fgets(buffer, MAXBUFFER, stdin);
+    token = strtok(buffer, ":");
+    strcpy(descricao, token);
+    token = strtok(NULL, ":");
+    nsala = atoi(token) - 1;
+    if (procura_evento(descricao, &sala, &evento)) {
+        temp = eventos[sala][evento];
+        temp.sala = nsala;
+        if (!incompatibilidade_sala(temp)) {
+            eventos[nsala][ocup_sala[nsala]++] = temp;
+            eventos[sala][evento] = eventos[sala][ocup_sala[sala]-1];
+            ocup_sala[sala]--;
+        }
+    }
+}
