@@ -9,7 +9,7 @@ void lista_todos_eventos();
 void lista_eventos_sala();
 int compare();
 void apaga_evento();
-Evento* procura_evento(char descricao[MAXCHAR], int *sala_coordenada);
+int procura_evento(char descricao[MAXCHAR], int *sala_coordenada, int *evento_coordenada);
 void altera_hora();
 void altera_duracao();
 void muda_sala();
@@ -26,7 +26,7 @@ int main() {
     for (;;) 
         switch (c = getchar()) {
             case 'a':
-                c = getchar();
+                c = getchar();  /* ignorar o espaco dado entre a acao e o resto do input */
                 adiciona_evento();
                 break;
             /*case 'l':
@@ -39,15 +39,18 @@ int main() {
                 apaga_evento();
                 break;
             case 'i':
+                c = getchar();  /* ignorar o espaco dado entre a acao e o resto do input */
                 altera_hora();
                 break;
-            /*case 't':
+            case 't':
+                c = getchar();  /* ignorar o espaco dado entre a acao e o resto do input */
                 altera_duracao();
                 break;
             case 'm':
+                c = getchar();
                 muda_sala();
                 break;
-            case 'A':
+            /*case 'A':
                 adiciona_participante();
                 break;
             case 'R':
@@ -129,9 +132,9 @@ int incompatibilidade_sala(Evento e) {
 
 int eventos_sobrepostos(Evento e1, Evento e2) {
     int incompatibilidade = 0;
-    if (e2.dia == e1.dia) {
-        if (e2.inicio <= e1.inicio && e2.fim > e1.inicio) incompatibilidade++;
-        if (e1.inicio <= e2.inicio && e1.fim > e2.inicio) incompatibilidade++;
+    if (e2.dia == e1.dia && strcmp(e1.descricao, e2.descricao)) {
+        if (e2.inicio < e1.inicio && e2.fim > e1.inicio) incompatibilidade++;
+        if (e1.inicio < e2.inicio && e1.fim > e2.inicio) incompatibilidade++;
     }
     return incompatibilidade;
 }
@@ -146,14 +149,14 @@ int incompatibilidade_pessoa(Evento e, char pessoa[MAXCHAR]) {
     for (sala = 0; sala < SALAS; sala++) {
         for (evento = 0; evento < ocup_sala[sala]; evento++) {
             if (!strcmp(pessoa, eventos[sala][evento].responsavel)) { 
-                if (eventos[sala][evento].dia == e.dia) {
+                if (eventos[sala][evento].dia == e.dia && strcmp(eventos[sala][evento].descricao, e.descricao)) {
                     if (eventos[sala][evento].inicio <= e.inicio && eventos[sala][evento].fim > e.inicio) return 1;
                     if (e.inicio <= eventos[sala][evento].inicio && e.fim > eventos[sala][evento].inicio) return 1;
                 }
             }
             for (i = 0; i < 3; i++) 
                 if (!strcmp(pessoa, eventos[sala][evento].participantes[i])) {
-                    if (eventos[sala][evento].dia == e.dia) {
+                    if (eventos[sala][evento].dia == e.dia && strcmp(eventos[sala][evento].descricao, e.descricao)) {
                         if (eventos[sala][evento].inicio <= e.inicio && eventos[sala][evento].fim > e.inicio) return 1;
                         if (e.inicio <= eventos[sala][evento].inicio && e.fim > eventos[sala][evento].inicio) return 1;
                     }
@@ -193,14 +196,13 @@ int compare(const void *a, const void *b)
 
 void apaga_evento() {
     int i = 0;
-    int sala = 0;
+    int sala = 0, evento = 0;
     char c, descricao[MAXCHAR];
-    Evento *e;
     c = getchar();  /* ignorar o primeiro espaco */
     while ((c = getchar()) != '\n') descricao[i++] = c;
     descricao[i] = '\0';
-    if ((e = procura_evento(descricao, &sala)) != INSUCESSO) {
-        *e = eventos[sala][ocup_sala[sala]-1];
+    if (procura_evento(descricao, &sala, &evento)) {
+        eventos[sala][evento] = eventos[sala][ocup_sala[sala]-1];
         ocup_sala[sala]--;
     }
 }
@@ -208,51 +210,87 @@ void apaga_evento() {
 void altera_hora() {
     char buffer[MAXBUFFER], descricao[MAXCHAR];
     char *token;
-    int hora, i, adiciona = 0, sala = 0;
-    Evento *e, temp;
+    int hora, i, adiciona = 0, sala = 0, evento = 0;
+    Evento temp;
 
     fgets(buffer, MAXBUFFER, stdin);
     token = strtok(buffer, ":");
     strcpy(descricao, token);
     token = strtok(NULL, ":");
     hora = atoi(token);
-    if ((e = procura_evento(descricao, &sala)) != INSUCESSO) {
-        temp = *e;
+    if (procura_evento(descricao, &sala, &evento)) {
+        temp = eventos[sala][evento];
         temp.data = temp.data - temp.tempo + hora;
         temp.tempo = hora;
         temp.inicio = (temp.tempo/100 * 60 + temp.tempo%100);
         temp.fim = temp.inicio + temp.duracao; 
         if (incompatibilidade_sala(temp)) adiciona++;
-        if (incompatibilidade_pessoa(temp, temp.responsavel)) {
+        else {
+            if (incompatibilidade_pessoa(temp, temp.responsavel)) {
             printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", temp.descricao, temp.responsavel);
             adiciona++;
-        }
-        for (i = 0; i < temp.n_participantes; i++) {
-            if (incompatibilidade_pessoa(temp, temp.participantes[i])) {
-            printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", temp.descricao, temp.participantes[i]);
-            adiciona++;
+            }
+            for (i = 0; i < temp.n_participantes; i++) {
+                if (incompatibilidade_pessoa(temp, temp.participantes[i])) {
+                printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", temp.descricao, temp.participantes[i]);
+                adiciona++;
+                }
             }
         }
+        if (adiciona == 0) {
+            eventos[sala][evento] = temp;
+        }
     }
-    if (adiciona == 0) {
-        e->data = temp.data;
-        e->tempo = temp.tempo;
-        e->inicio = temp.inicio;
-        e->fim = temp.fim;
-    }; 
 }
 
-Evento* procura_evento(char descricao[MAXCHAR], int *sala_coordenada) {
+int procura_evento(char descricao[MAXCHAR], int *sala_coordenada, int *evento_coordenada) {
     int sala, evento;
     for (sala = 0; sala < SALAS; sala++) {
         for (evento = 0; evento < ocup_sala[sala]; evento++) {
             if (!strcmp(eventos[sala][evento].descricao, descricao)) {
                 *sala_coordenada = sala;
-                return &eventos[sala][evento];
+                *evento_coordenada = evento;
+                return SUCESSO;
             }
         }
     }
     printf("Evento %s inexistente.\n", descricao);
-    return NULL;
+    return INSUCESSO;
 
 }
+
+void altera_duracao() {
+    char buffer[MAXBUFFER], descricao[MAXCHAR];
+    char *token;
+    int duracao, i, adiciona = 0, sala = 0, evento = 0;
+    Evento temp;
+
+    fgets(buffer, MAXBUFFER, stdin);
+    token = strtok(buffer, ":");
+    strcpy(descricao, token);
+    token = strtok(NULL, ":");
+    duracao = atoi(token);
+    if (procura_evento(descricao, &sala, &evento)) {
+        temp = eventos[sala][evento];
+        temp.duracao = duracao;
+        temp.fim = temp.inicio + temp.duracao;
+        if (incompatibilidade_sala(temp)) adiciona++;
+        else {
+            if (incompatibilidade_pessoa(temp, temp.responsavel)) {
+            printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", temp.descricao, temp.responsavel);
+            adiciona++;
+            }
+            for (i = 0; i < temp.n_participantes; i++) {
+                if (incompatibilidade_pessoa(temp, temp.participantes[i])) {
+                printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", temp.descricao, temp.participantes[i]);
+                adiciona++;
+                }
+            }
+        }
+        if (adiciona == 0) {
+            eventos[sala][evento] = temp;
+        }
+    }
+}
+
+void 
