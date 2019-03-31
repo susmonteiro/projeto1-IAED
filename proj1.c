@@ -26,7 +26,6 @@ int main() {
     for (;;) 
         switch (c = getchar()) {
             case 'a':
-                c = getchar();  /* ignorar o espaco dado entre a acao e o resto do input */
                 adiciona_evento();
                 break;
             case 'l':
@@ -39,31 +38,30 @@ int main() {
                 apaga_evento();
                 break;
             case 'i':
-                c = getchar();  /* ignorar o espaco dado entre a acao e o resto do input */
+                getchar();  /* ignorar o espaco dado entre a acao e o resto do input */
                 altera_hora();
                 break;
             case 't':
-                c = getchar();  /* ignorar o espaco dado entre a acao e o resto do input */
+                getchar();  /* ignorar o espaco dado entre a acao e o resto do input */
                 altera_duracao();
                 break;
             case 'm':
-                c = getchar();
+                getchar();
                 muda_sala();
                 break;
             case 'A':
-                c = getchar();
+                getchar();
                 adiciona_participante();
                 break;
             case 'R':
-                c = getchar();
+                getchar();
                 remove_participante();
                 break;
             case 'x':
                 return EXIT_SUCCESS;
-                /*
             default:
-                fprintf(stderr, "Invalid input\n");
-                return EXIT_FAILURE;*/
+                fprintf(stderr, "Invalid input: %d\n", c);
+                return EXIT_FAILURE;
         }
 }
 
@@ -71,6 +69,8 @@ void adiciona_evento() {
     int i, adiciona = 0;   /* flag que indica que o evento pode ou nao ser adicionado, 
                             de acordo com a disponibilidade da sala, do responsavel e dos participantes */
     Evento e;
+
+    getchar();  /* ignorar o espaco dado entre a acao e o resto do input */
     e = cria_evento();
     if (incompatibilidade_sala(e)) adiciona++;
     if (incompatibilidade_pessoa(e, e.responsavel)) {
@@ -177,6 +177,7 @@ void lista_eventos_sala() {
     int j, evento, sala;
 
     scanf("%d", &sala);
+    getchar();      /* le o \n */
     sala--;
     qsort(eventos[sala], ocup_sala[sala], sizeof(Evento), compare);
     for (evento = 0; evento < ocup_sala[sala]; evento++) {
@@ -355,7 +356,7 @@ void adiciona_participante() {
 void remove_participante() {
     char buffer[MAXBUFFER], descricao[MAXCHAR], participante[MAXCHAR];
     char *token;
-    int i, sala = 0, evento = 0;
+    int i, j, sala = 0, evento = 0;
 
     fgets(buffer, MAXBUFFER, stdin);
     buffer[strlen(buffer) - 1] = '\0';
@@ -369,8 +370,9 @@ void remove_participante() {
                 if (eventos[sala][evento].n_participantes == MINPARTICIPANTES)
                     printf("Impossivel remover participante. Participante %s e o unico participante no evento %s.\n", participante, descricao);
                 else {
-                    strcpy(eventos[sala][evento].participantes[i], eventos[sala][evento].participantes[eventos[sala][evento].n_participantes]);
                     eventos[sala][evento].n_participantes--;
+                    for (j = i; j < eventos[sala][evento].n_participantes; j ++)
+                        strcpy(eventos[sala][evento].participantes[j], eventos[sala][evento].participantes[j + 1]);
                 }
             }
     }
@@ -379,6 +381,7 @@ void remove_participante() {
 void lista_todos_eventos() {
     int sala, indice[SALAS], i, j, min;
 
+    getchar();      /* le o \n  */
     for (sala = 0; sala < SALAS; sala++) {
         qsort(eventos[sala], ocup_sala[sala], sizeof(Evento), compare);
         indice[sala] = ocup_sala[sala] == 0 ? -1 : 0;
