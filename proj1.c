@@ -3,6 +3,7 @@
 void adiciona_evento();
 Evento cria_evento();
 int incompatibilidade_sala(Evento e);
+int incompatibilidade_pessoas(Evento e);
 int incompatibilidade_pessoa(Evento e, char pessoa[MAXCHAR]);
 int eventos_sobrepostos(Evento e1, Evento e2);
 void lista_todos_eventos();
@@ -65,39 +66,24 @@ int main() {
         }
 }
 
-void adiciona_evento() {
-    int i, adiciona = 0;   /* adiciona: flag que indica que o evento pode ou nao ser adicionado, 
-                            de acordo com a disponibilidade da sala, do responsavel e dos participantes */
+void adiciona_evento() {    /* funcao principal do comando a */
     Evento e;
 
-    getchar();  /* ignorar o espaco dado entre a acao e o resto do input */
+    getchar();              /* ignorar o espaco dado entre a acao e o resto do input */
     e = cria_evento();
-    if (incompatibilidade_sala(e)) adiciona++;
-    if (adiciona == 0) {
-        if (incompatibilidade_pessoa(e, e.responsavel)) {
-            printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", e.descricao, e.responsavel);
-            adiciona++;
-        }
-        for (i = 0; i < e.n_participantes; i++) {
-            if (incompatibilidade_pessoa(e, e.participantes[i])) {
-                printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", e.descricao, e.participantes[i]);
-                adiciona++;
-            }
-        }
-    }
-    if (adiciona == 0) {
-        eventos[e.sala][ocup_sala[e.sala]++] = e;
-    }
+    if (!incompatibilidade_sala(e))
+        if (!incompatibilidade_pessoas(e))
+            eventos[e.sala][ocup_sala[e.sala]++] = e;
 }
 
-Evento cria_evento() {
+Evento cria_evento() {      /* funcao que recebe o input para a criacao do evento e devolve o novo evento */
     char buffer[MAXBUFFER];
     char *token;
     int i = 0;
     Evento e;
 
     fgets(buffer, MAXBUFFER, stdin);
-    buffer[strlen(buffer) - 1] = '\0';
+    buffer[strlen(buffer) - 1] = '\0';  /* ignorar o \n do final do input */
     token = strtok(buffer, ":");
     strcpy(e.descricao, token);
     token = strtok(NULL, ":");
@@ -113,13 +99,17 @@ Evento cria_evento() {
     while ((token = strtok(NULL, ":"))!= NULL) strcpy(e.participantes[i++], token);
 
     /* calcular valor das restantes variaveis da struct Evento */
-
-    e.n_participantes = i;
-    e.inicio = (e.tempo/100 * 60 + e.tempo%100);
-    e.fim = e.inicio + e.duracao;
-    e.data = e.tempo + (e.dia/1000000)*10000 + ((e.dia/10000)%100)*1000000 + 
-        ((e.dia%10000)-2019)*100000000; /* dia e tempo do evento no formato ammddhhmm -> toma-se 2019 como ano 0,
-                                visto que nenhum evento pode ser agendado para uma data anterior a 2019 */
+    e.n_participantes = i;                          /* numero de participantes do evento */
+    strcpy(e.pessoas[0], e.responsavel);            /* e.pessoas = responsavel + participantes do evento */
+    for (i = 0; i < e.n_participantes; i++)
+        strcpy(e.pessoas[i + 1], e.participantes[i]);                        
+    e.inicio = (e.tempo/100 * 60 + e.tempo%100);    /* inicio do evento em minutos */
+    e.fim = e.inicio + e.duracao;                   /* fim do evento em minutos*/
+    /* e.data: dia e tempo do evento no formato ammddhhmm -> toma-se 2019 como ano 0,
+        visto que nenhum evento pode ser agendado para uma data anterior a 2019 */
+    e.data = e.tempo + (e.dia/1000000)*10000;       /* hora + dia */
+    e.data += ((e.dia/10000)%100)*1000000;          /* hora + dia + mes */
+    e.data += ((e.dia%10000)-2019)*100000000;       /* hora + dia + mes + ano */
     return e;
 }
 
@@ -143,10 +133,25 @@ int eventos_sobrepostos(Evento e1, Evento e2) {
     return incompatibilidade;
 }
 
+int incompatibilidade_pessoas(Evento e) {
+    int sala, evento, p1, p2, incompatibilidade = 0;
+    for (sala = 0; sala < SALAS; sala++) {
+        for (evento = 0; evento < ocup_sala[sala]; evento++) {
+            if (eventos_sobrepostos(e, eventos[sala][evento])) {
+                for (p1 = 0; p1 < e.n_participantes + 1; p1++) {
+                    for (p2 = 0; p2 < eventos[sala][evento].n_participantes + 1; p2++) {
+                        if (!strcmp(e.pessoas[p1], eventos[sala][evento].pessoas[p2])) {
+                            printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", e.descricao, e.pessoas[p1]);
+                            incompatibilidade++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return incompatibilidade;
+}
 
-/*------------------------------------------------------------------------------------*/
-/*------------------------------------------------------------------------------------*/
-/*------------------------------------------------------------------------------------*/
 
 int incompatibilidade_pessoa(Evento e, char pessoa[MAXCHAR]) {
     int sala, evento, i;
@@ -170,9 +175,8 @@ int incompatibilidade_pessoa(Evento e, char pessoa[MAXCHAR]) {
     return 0;
 }
 
-/*------------------------------------------------------------------------------------*/
-/*------------------------------------------------------------------------------------*/
-/*------------------------------------------------------------------------------------*/
+
+
 
 void lista_eventos_sala() {
     int j, evento, sala;
