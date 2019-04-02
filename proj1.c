@@ -66,24 +66,25 @@ int main() {
 }
 
 void adiciona_evento() {
-    int i, adiciona = 0;   /* flag que indica que o evento pode ou nao ser adicionado, 
+    int i, adiciona = 0;   /* adiciona: flag que indica que o evento pode ou nao ser adicionado, 
                             de acordo com a disponibilidade da sala, do responsavel e dos participantes */
     Evento e;
 
     getchar();  /* ignorar o espaco dado entre a acao e o resto do input */
     e = cria_evento();
     if (incompatibilidade_sala(e)) adiciona++;
-    if (incompatibilidade_pessoa(e, e.responsavel)) {
-        printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", e.descricao, e.responsavel);
-        adiciona++;
-    }
-    for (i = 0; i < e.n_participantes; i++) {
-        if (incompatibilidade_pessoa(e, e.participantes[i])) {
-            printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", e.descricao, e.participantes[i]);
+    if (adiciona == 0) {
+        if (incompatibilidade_pessoa(e, e.responsavel)) {
+            printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", e.descricao, e.responsavel);
             adiciona++;
         }
+        for (i = 0; i < e.n_participantes; i++) {
+            if (incompatibilidade_pessoa(e, e.participantes[i])) {
+                printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", e.descricao, e.participantes[i]);
+                adiciona++;
+            }
+        }
     }
-    
     if (adiciona == 0) {
         eventos[e.sala][ocup_sala[e.sala]++] = e;
     }
@@ -332,6 +333,9 @@ void adiciona_participante() {
     token = strtok(NULL, ":");
     strcpy(participante, token);
     if (procura_evento(descricao, &sala, &evento)) {
+        if (!strcmp(eventos[sala][evento].responsavel, participante)) {
+            stop = 0;
+        }
         for (i = 0; i < eventos[sala][evento].n_participantes; i++)
             if (!strcmp(eventos[sala][evento].participantes[i], participante)) {
                 stop = 0;
