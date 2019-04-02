@@ -1,26 +1,9 @@
 #include "proj1.h"
 
-void adiciona_evento();
-Evento cria_evento();
-int incompatibilidade_sala(Evento e);
-int incompatibilidade_pessoas(Evento e);
-int incompatibilidade_pessoa(Evento e, char pessoa[MAXCHAR]);
-int eventos_sobrepostos(Evento e1, Evento e2);
-void lista_todos_eventos();
-void lista_eventos_sala();
-int compare();
-void apaga_evento();
-int procura_evento(char descricao[MAXCHAR], int *sala_coordenada, int *evento_coordenada);
-void altera_hora();
-void altera_duracao();
-void muda_sala();
-void adiciona_participante();
-void remove_participante();
-
 /* vetores globais, visto que sao utilizados e modificados por um grande numero de funcoes */
 
 Evento eventos[SALAS][MAXPORSALA] = {0};    /* tabela de eventos por sala */
-int ocup_sala[10] = {0};                    /* guarda a ocupação de cada sala */ 
+int ocup_sala[SALAS] = {0};                 /* guarda a ocupação de cada sala */ 
 
 int main() {
     char c;
@@ -268,13 +251,14 @@ int procura_evento(char descricao[MAXCHAR], int *sala_coordenada, int *evento_co
 
 }
 
-void altera_duracao() { /* funcao principal do comando t */
-    /*
-    1) procurar o evento com a mesma descricao 
-    2) criar um evento temporario com as mesmas caracteristicas do novo evento 
-    3) avaliar se ha alguma incompatibilidade em termos de sala e de participantes
-    4) em caso negativo, atualizar a tabela de eventos 
-    */
+/* funcao principal do comando t 
+1) procurar o evento com a mesma descricao 
+2) criar um evento temporario com as mesmas caracteristicas do novo evento 
+3) avaliar se ha alguma incompatibilidade em termos de sala e de participantes
+4) em caso negativo, atualizar a tabela de eventos 
+*/
+void altera_duracao() { 
+    
     char buffer[MAXBUFFER], descricao[MAXCHAR];
     char *token;
     int duracao, sala = 0, evento = 0;
@@ -332,7 +316,7 @@ void muda_sala() {  /* funcao principal do comando m */
 void adiciona_participante() {
     char buffer[MAXBUFFER], descricao[MAXCHAR], participante[MAXCHAR];
     char *token;
-    int i, sala = 0, evento = 0, stop = 1;
+    int i, sala = 0, evento = 0, stop = 0;
 
     fgets(buffer, MAXBUFFER, stdin);
     buffer[strlen(buffer) - 1] = '\0';
@@ -342,14 +326,13 @@ void adiciona_participante() {
     strcpy(participante, token);
     if (procura_evento(descricao, &sala, &evento)) {
         if (!strcmp(eventos[sala][evento].responsavel, participante)) {
-            stop = 0;
+            stop = 1;
         }
-        for (i = 0; i < eventos[sala][evento].n_participantes; i++)
+        for (i = 0; i < eventos[sala][evento].n_participantes && !stop; i++)
             if (!strcmp(eventos[sala][evento].participantes[i], participante)) {
-                stop = 0;
-                break;
+                stop = 1;
             }
-        if (stop) {
+        if (!stop) {
             if (incompatibilidade_pessoa(eventos[sala][evento], participante))
                     printf("Impossivel adicionar participante. Participante %s tem um evento sobreposto.\n", participante);
             else {
@@ -398,31 +381,31 @@ void lista_todos_eventos() {    /* funcao principal do comando l */
         se todos os eventos de uma sala já tiverem sido impressos, o indice dessa sala e -1
     */
 
-    int sala, indice[SALAS], i, j, min, fim = 1;
+    int sala, indice[SALAS], i, j, min, fim = 0;
 
     getchar();      /* ignorar o espaco dado entre o comando e o resto do input */
     for (sala = 0; sala < SALAS; sala++) {
         qsort(eventos[sala], ocup_sala[sala], sizeof(Evento), compare);
         indice[sala] = ocup_sala[sala] == 0 ? -1 : 0;
     }
-    while (fim) {
-        i = -1;
-        while (indice[++i] == -1 && i < 10);
+    while (!fim) {
+        for (i = 0; i < 10 && indice[i] == -1; i++);
         if (i == 10) {
-            fim = 0;
-            continue;
+            fim = 1;
         }
-        min = i;
-        for (sala = i + 1; sala < SALAS; sala++)
-            if (indice[sala] != -1 && eventos[sala][indice[sala]].data < eventos[min][indice[min]].data) min = sala;
-        printf("%s %08d %04d %d Sala%d %s\n* ", eventos[min][indice[min]].descricao,
-          eventos[min][indice[min]].dia, eventos[min][indice[min]].tempo, eventos[min][indice[min]].duracao,
-          eventos[min][indice[min]].sala + 1, eventos[min][indice[min]].responsavel);
-        for (j = 0; j < eventos[min][indice[min]].n_participantes; j++) {
-            printf("%s", eventos[min][indice[min]].participantes[j]);
-                if (j + 1 != eventos[min][indice[min]].n_participantes) putchar(' ');
+        else {
+            min = i;
+            for (sala = i + 1; sala < SALAS; sala++)
+                if (indice[sala] != -1 && eventos[sala][indice[sala]].data < eventos[min][indice[min]].data) min = sala;
+            printf("%s %08d %04d %d Sala%d %s\n* ", eventos[min][indice[min]].descricao,
+            eventos[min][indice[min]].dia, eventos[min][indice[min]].tempo, eventos[min][indice[min]].duracao,
+            eventos[min][indice[min]].sala + 1, eventos[min][indice[min]].responsavel);
+            for (j = 0; j < eventos[min][indice[min]].n_participantes; j++) {
+                printf("%s", eventos[min][indice[min]].participantes[j]);
+                    if (j + 1 != eventos[min][indice[min]].n_participantes) putchar(' ');
+            }
+            putchar('\n');
+            if ((++indice[min]) == ocup_sala[min]) indice[min] = -1;
         }
-        putchar('\n');
-        if ((++indice[min]) == ocup_sala[min]) indice[min] = -1;
     }
 }

@@ -30,3 +30,20 @@ typedef struct {
     int data;               /* dia e tempo do evento no formato ammddhhmm -> toma-se 2019 como ano 0,
                                 visto que nenhum evento pode ser agendado para uma data anterior a 2019 */
 } Evento;
+
+void adiciona_evento();
+Evento cria_evento();
+int incompatibilidade_sala(Evento e);
+int incompatibilidade_pessoas(Evento e);
+int incompatibilidade_pessoa(Evento e, char pessoa[MAXCHAR]);
+int eventos_sobrepostos(Evento e1, Evento e2);
+void lista_todos_eventos();
+void lista_eventos_sala();
+int compare();
+void apaga_evento();
+int procura_evento(char descricao[MAXCHAR], int *sala_coordenada, int *evento_coordenada);
+void altera_hora();
+void altera_duracao();
+void muda_sala();
+void adiciona_participante();
+void remove_participante();
