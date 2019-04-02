@@ -39,15 +39,12 @@ int main() {
                 apaga_evento();
                 break;
             case 'i':
-                getchar();  /* ignorar o espaco dado entre a acao e o resto do input */
                 altera_hora();
                 break;
             case 't':
-                getchar();  /* ignorar o espaco dado entre a acao e o resto do input */
                 altera_duracao();
                 break;
             case 'm':
-                getchar();
                 muda_sala();
                 break;
             case 'A':
@@ -69,7 +66,7 @@ int main() {
 void adiciona_evento() {    /* funcao principal do comando a */
     Evento e;
 
-    getchar();              /* ignorar o espaco dado entre a acao e o resto do input */
+    getchar();              /* ignorar o espaco dado entre o comando e o resto do input */
     e = cria_evento();
     if (!incompatibilidade_sala(e))
         if (!incompatibilidade_pessoas(e))
@@ -113,8 +110,9 @@ Evento cria_evento() {      /* funcao que recebe o input para a criacao do event
     return e;
 }
 
-int incompatibilidade_sala(Evento e) {
+int incompatibilidade_sala(Evento e) {  /* avalia se a sala esta livre */
     int evento;  
+
     for (evento = 0; evento < ocup_sala[e.sala]; evento++) {
         if (eventos_sobrepostos(e, eventos[e.sala][evento])) {
             printf("Impossivel agendar evento %s. Sala%d ocupada.\n", e.descricao, ++e.sala);
@@ -124,17 +122,20 @@ int incompatibilidade_sala(Evento e) {
     return INSUCESSO;
 }
 
-int eventos_sobrepostos(Evento e1, Evento e2) {
-    int incompatibilidade = 0;  /*incompatibilidade -> tem o valor 1 caso a sala ja esteja ocupada */
-    if (e2.dia == e1.dia && strcmp(e1.descricao, e2.descricao)) {
+int eventos_sobrepostos(Evento e1, Evento e2) {     /* avalia se dois eventos estao sobrepostos */
+    int incompatibilidade = 0;  /*incompatibilidade -> tem o valor 1 caso haja incompatibilidade */
+
+    if (e2.dia == e1.dia && strcmp(e1.descricao, e2.descricao)) {   /* no caso da descricao ser igual, entao estamos a comparar
+                                                                    o mesmo evento e queremos descartar esse caso */
         if (e2.inicio <= e1.inicio && e2.fim > e1.inicio) incompatibilidade++;
         if (e1.inicio <= e2.inicio && e1.fim > e2.inicio) incompatibilidade++;
     }
     return incompatibilidade;
 }
 
-int incompatibilidade_pessoas(Evento e) {
-    int sala, evento, p1, p2, incompatibilidade = 0;
+int incompatibilidade_pessoas(Evento e) {       /* avalia se todas as pessoas de um evento (responsaveis e participantes) estao livres*/
+    int sala, evento, p1, p2, incompatibilidade = 0; /*incompatibilidade -> tem o valor 0 caso nao haja incompatibilidade */
+
     for (sala = 0; sala < SALAS; sala++) {
         for (evento = 0; evento < ocup_sala[sala]; evento++) {
             if (eventos_sobrepostos(e, eventos[sala][evento])) {
@@ -155,6 +156,7 @@ int incompatibilidade_pessoas(Evento e) {
 
 int incompatibilidade_pessoa(Evento e, char pessoa[MAXCHAR]) {
     int sala, evento, i;
+
     for (sala = 0; sala < SALAS; sala++) {
         for (evento = 0; evento < ocup_sala[sala]; evento++) {
             if (!strcmp(pessoa, eventos[sala][evento].responsavel)) { 
@@ -175,11 +177,8 @@ int incompatibilidade_pessoa(Evento e, char pessoa[MAXCHAR]) {
     return 0;
 }
 
-
-
-
-void lista_eventos_sala() {
-    int j, evento, sala;
+void lista_eventos_sala() { /* funcao principal do comando s */
+    int i, evento, sala;
 
     scanf("%d", &sala);
     getchar();      /* le o \n */
@@ -189,40 +188,50 @@ void lista_eventos_sala() {
         printf("%s %08d %04d %d Sala%d %s\n* ", eventos[sala][evento].descricao,
             eventos[sala][evento].dia, eventos[sala][evento].tempo, eventos[sala][evento].duracao,
             eventos[sala][evento].sala + 1, eventos[sala][evento].responsavel);
-        for (j = 0; j < eventos[sala][evento].n_participantes; j++) {
-            printf("%s", eventos[sala][evento].participantes[j]);
-            if (j + 1 != eventos[sala][evento].n_participantes) putchar(' ');
+        for (i = 0; i < eventos[sala][evento].n_participantes; i++) {
+            printf("%s", eventos[sala][evento].participantes[i]);
+            if (i + 1 != eventos[sala][evento].n_participantes) putchar(' ');
         }
         putchar('\n');
     }
 }
 
-int compare(const void *a, const void *b) 
-{ 
+int compare(const void *a, const void *b) { /* funcao compare utilizada no qsort */ 
     Evento *ia = (Evento *)a;
     Evento *ib = (Evento *)b;
     return ia->data - ib->data;
 }
 
-void apaga_evento() {
+void apaga_evento() { /* funcao principal do comando r */
+    /*
+    1) procurar o evento com a mesma descricao 
+    2) colocar o ultimo evento da sala na posicao do evento a ser apagado e decrementar a ocupacao dessa sala 
+    */
     int i = 0;
     int sala = 0, evento = 0;
     char c, descricao[MAXCHAR];
-    c = getchar();  /* ignorar o primeiro espaco */
+
+    c = getchar();  /* ignorar o espaco dado entre o comando e o resto do input */
     while ((c = getchar()) != '\n') descricao[i++] = c;
     descricao[i] = '\0';
     if (procura_evento(descricao, &sala, &evento)) {
-        eventos[sala][evento] = eventos[sala][ocup_sala[sala]-1];
-        ocup_sala[sala]--;
+        eventos[sala][evento] = eventos[sala][--ocup_sala[sala]];
     }
 }
 
-void altera_hora() {
+void altera_hora() {    /* funcao principal do comando i */
+    /*
+    1) procurar o evento com a mesma descricao 
+    2) criar um evento temporario com as mesmas caracteristicas do novo evento 
+    3) avaliar se ha alguma incompatibilidade em termos de sala e de participantes
+    4) em caso negativo, atualizar a tabela de eventos 
+    */
     char buffer[MAXBUFFER], descricao[MAXCHAR];
     char *token;
-    int hora, i, adiciona = 0, sala = 0, evento = 0;
-    Evento temp;
+    int hora, sala = 0, evento = 0;
+    Evento temp;    /* evento temporario, com as caracteristicas do novo evento */
 
+    getchar();  /* ignorar o espaco dado entre o comando e o resto do input */
     fgets(buffer, MAXBUFFER, stdin);
     token = strtok(buffer, ":");
     strcpy(descricao, token);
@@ -230,31 +239,21 @@ void altera_hora() {
     hora = atoi(token);
     if (procura_evento(descricao, &sala, &evento)) {
         temp = eventos[sala][evento];
+        /* calcular valor das restantes variaveis da struct Evento que dependem do novo valor da hora */
         temp.data = temp.data - temp.tempo + hora;
         temp.tempo = hora;
         temp.inicio = (temp.tempo/100 * 60 + temp.tempo%100);
         temp.fim = temp.inicio + temp.duracao; 
-        if (incompatibilidade_sala(temp)) adiciona++;
-        else {
-            if (incompatibilidade_pessoa(temp, temp.responsavel)) {
-            printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", temp.descricao, temp.responsavel);
-            adiciona++;
-            }
-            for (i = 0; i < temp.n_participantes; i++) {
-                if (incompatibilidade_pessoa(temp, temp.participantes[i])) {
-                printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", temp.descricao, temp.participantes[i]);
-                adiciona++;
-                }
-            }
-        }
-        if (adiciona == 0) {
-            eventos[sala][evento] = temp;
-        }
+        if (!incompatibilidade_sala(temp))
+            if (!incompatibilidade_pessoas(temp))
+                eventos[sala][evento] = temp;
     }
 }
 
 int procura_evento(char descricao[MAXCHAR], int *sala_coordenada, int *evento_coordenada) {
+    /* procura o evento com a descricao inserida e, em caso de insucesso, devolve um erro */
     int sala, evento;
+
     for (sala = 0; sala < SALAS; sala++) {
         for (evento = 0; evento < ocup_sala[sala]; evento++) {
             if (!strcmp(eventos[sala][evento].descricao, descricao)) {
@@ -269,12 +268,19 @@ int procura_evento(char descricao[MAXCHAR], int *sala_coordenada, int *evento_co
 
 }
 
-void altera_duracao() {
+void altera_duracao() { /* funcao principal do comando t */
+    /*
+    1) procurar o evento com a mesma descricao 
+    2) criar um evento temporario com as mesmas caracteristicas do novo evento 
+    3) avaliar se ha alguma incompatibilidade em termos de sala e de participantes
+    4) em caso negativo, atualizar a tabela de eventos 
+    */
     char buffer[MAXBUFFER], descricao[MAXCHAR];
     char *token;
-    int duracao, i, adiciona = 0, sala = 0, evento = 0;
-    Evento temp;
+    int duracao, sala = 0, evento = 0;
+    Evento temp;    /* evento temporario, com as caracteristicas do novo evento */
 
+    getchar();  /* ignorar o espaco dado entre o comando e o resto do input */
     fgets(buffer, MAXBUFFER, stdin);
     token = strtok(buffer, ":");
     strcpy(descricao, token);
@@ -282,33 +288,32 @@ void altera_duracao() {
     duracao = atoi(token);
     if (procura_evento(descricao, &sala, &evento)) {
         temp = eventos[sala][evento];
+        /* calcular valor das restantes variaveis da struct Evento que dependem do novo valor da duracao */
         temp.duracao = duracao;
         temp.fim = temp.inicio + temp.duracao;
-        if (incompatibilidade_sala(temp)) adiciona++;
-        else {
-            if (incompatibilidade_pessoa(temp, temp.responsavel)) {
-            printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", temp.descricao, temp.responsavel);
-            adiciona++;
-            }
-            for (i = 0; i < temp.n_participantes; i++) {
-                if (incompatibilidade_pessoa(temp, temp.participantes[i])) {
-                printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", temp.descricao, temp.participantes[i]);
-                adiciona++;
-                }
-            }
-        }
-        if (adiciona == 0) {
-            eventos[sala][evento] = temp;
-        }
+        if (!incompatibilidade_sala(temp))
+            if (!incompatibilidade_pessoas(temp))
+                eventos[sala][evento] = temp;
     }
 }
 
-void muda_sala() {
+void muda_sala() {  /* funcao principal do comando m */
+    /*
+    1) procurar o evento com a mesma descricao 
+    2) criar um evento temporario com as mesmas caracteristicas do novo evento 
+    3) avaliar se ha alguma incompatibilidade em termos de sala 
+        (como o horario nao se altera, os participantes e o responsavel estarao certamente disponiveis)
+    4) em caso negativo, atualizar a tabela de eventos, isto e:
+        - juntar o evento a nova sala
+        - apagar o evento da sala antiga, ou seja, colocar o ultimo evento da sala no lugar
+        do evento a apagar e decrementar a ocupacao dessa sala
+    */
     char buffer[MAXBUFFER], descricao[MAXCHAR];
     char *token;
     int nsala, sala = 0, evento = 0;
-    Evento temp;
+    Evento temp; /* evento temporario, com as caracteristicas do novo evento */
 
+    getchar();  /* ignorar o espaco dado entre o comando e o resto do input */
     fgets(buffer, MAXBUFFER, stdin);
     token = strtok(buffer, ":");
     strcpy(descricao, token);
@@ -318,9 +323,8 @@ void muda_sala() {
         temp = eventos[sala][evento];
         temp.sala = nsala;
         if (!incompatibilidade_sala(temp)) {
-            eventos[nsala][ocup_sala[nsala]++] = temp;
-            eventos[sala][evento] = eventos[sala][ocup_sala[sala]-1];
-            ocup_sala[sala]--;
+            eventos[nsala][ocup_sala[nsala]++] = temp;  /* adicionar o evento a nova sala */
+            eventos[sala][evento] = eventos[sala][--ocup_sala[sala]]; /* apagar o evento da sala antiga */
         }
     }
 }
@@ -386,19 +390,27 @@ void remove_participante() {
     }
 }
 
-void lista_todos_eventos() {
-    int sala, indice[SALAS], i, j, min;
+void lista_todos_eventos() {    /* funcao principal do comando l */
+    /* 
+    1) ordenar cronologicamente todos os eventos de cada sala 
+    2) escolher o evento mais proximo entre os primeiros (ou seja, os mais proximos) de cada sala 
+        para tal, foi criado o vetor indice que guarda o primeiro evento de cada sala que ainda nao foi impresso
+        se todos os eventos de uma sala já tiverem sido impressos, o indice dessa sala e -1
+    */
 
-    getchar();      /* le o \n  */
+    int sala, indice[SALAS], i, j, min, fim = 1;
+
+    getchar();      /* ignorar o espaco dado entre o comando e o resto do input */
     for (sala = 0; sala < SALAS; sala++) {
         qsort(eventos[sala], ocup_sala[sala], sizeof(Evento), compare);
         indice[sala] = ocup_sala[sala] == 0 ? -1 : 0;
     }
-    for (;;) {
+    while (fim) {
         i = -1;
         while (indice[++i] == -1 && i < 10);
         if (i == 10) {
-            break;
+            fim = 0;
+            continue;
         }
         min = i;
         for (sala = i + 1; sala < SALAS; sala++)
