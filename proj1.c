@@ -157,7 +157,7 @@ int incompatibilidade_pessoa(Evento e, char pessoa[MAXCHAR]) {
                     if (e.inicio <= eventos[sala][evento].inicio && e.fim > eventos[sala][evento].inicio) return 1;
                 }
             }
-            for (i = 0; i < 3; i++) 
+            for (i = 0; i < eventos[sala][evento].n_participantes; i++) 
                 if (!strcmp(pessoa, eventos[sala][evento].participantes[i])) {
                     if (eventos[sala][evento].dia == e.dia && strcmp(eventos[sala][evento].descricao, e.descricao)) {
                         if (eventos[sala][evento].inicio <= e.inicio && eventos[sala][evento].fim > e.inicio) return 1;
