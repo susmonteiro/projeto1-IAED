@@ -72,12 +72,12 @@ void adiciona_evento() {
 lista todos os eventos por ordem cronológica */
 void lista_todos_eventos() {
     int sala, i, j;
-    int min;    /* guarda a sala com o evento mais proximo */
+    int min;            /* guarda a sala com o evento mais proximo */
     int indice[SALAS];  /* guarda o primeiro evento de cada sala que ainda nao foi impresso 
-                        se todos os eventos de uma sala já tiverem sido impressos, o indice dessa sala e -1 */
-    int fim = 0;    /* marca o fim da listagem de todos os eventos */
+                            se todos os eventos de uma sala já tiverem sido impressos, o indice dessa sala e -1 */
+    int fim = 0;        /* marca o fim da listagem de todos os eventos */
 
-    getchar();      /* ignorar o espaco dado entre o comando e o resto do input */
+    getchar();          /* ignorar o espaco dado entre o comando e o resto do input */
     /* ordenar cronologicamente todos os eventos de cada sala, individualmente */
     for (sala = 0; sala < SALAS; sala++) {
         qsort(eventos[sala], ocup_sala[sala], sizeof(Evento), compare);
@@ -152,7 +152,7 @@ void altera_hora() {
     int hora, sala = 0, evento = 0;
     Evento temp;    /* evento temporario, com as caracteristicas do novo evento */
 
-    getchar();  /* ignorar o espaco dado entre o comando e o resto do input */
+    getchar();      /* ignorar o espaco dado entre o comando e o resto do input */
     fgets(buffer, MAXBUFFER, stdin);
     token = strtok(buffer, ":");
     strcpy(descricao, token);
@@ -180,7 +180,7 @@ void altera_duracao() {
     int duracao, sala = 0, evento = 0;
     Evento temp;    /* evento temporario, com as caracteristicas do novo evento */
 
-    getchar();  /* ignorar o espaco dado entre o comando e o resto do input */
+    getchar();      /* ignorar o espaco dado entre o comando e o resto do input */
     fgets(buffer, MAXBUFFER, stdin);
     token = strtok(buffer, ":");
     strcpy(descricao, token);
@@ -203,9 +203,9 @@ void muda_sala() {
     char buffer[MAXBUFFER], descricao[MAXCHAR];
     char *token;
     int nsala, sala = 0, evento = 0;
-    Evento temp; /* evento temporario, com as caracteristicas do novo evento */
+    Evento temp;    /* evento temporario, com as caracteristicas do novo evento */
 
-    getchar();  /* ignorar o espaco dado entre o comando e o resto do input */
+    getchar();      /* ignorar o espaco dado entre o comando e o resto do input */
     fgets(buffer, MAXBUFFER, stdin);
     token = strtok(buffer, ":");
     strcpy(descricao, token);
@@ -215,8 +215,8 @@ void muda_sala() {
         temp = eventos[sala][evento];
         temp.sala = nsala;
         if (!incompatibilidade_sala(temp)) {
-            eventos[nsala][ocup_sala[nsala]++] = temp;  /* adicionar o evento a nova sala */
-            eventos[sala][evento] = eventos[sala][--ocup_sala[sala]]; /* apagar o evento da sala antiga */
+            eventos[nsala][ocup_sala[nsala]++] = temp;                  /* adicionar o evento a nova sala */
+            eventos[sala][evento] = eventos[sala][--ocup_sala[sala]];   /* apagar o evento da sala antiga */
         }
     }
 }
@@ -229,7 +229,7 @@ void adiciona_participante() {
     char *token;
     int i, sala = 0, evento = 0, stop = 0;  /* stop: indica se o participante ja faz parte do evento ou nao */
 
-    getchar();              /* ignorar o espaco dado entre o comando e o resto do input */
+    getchar();                              /* ignorar o espaco dado entre o comando e o resto do input */
     fgets(buffer, MAXBUFFER, stdin);
     buffer[strlen(buffer) - 1] = '\0';
     token = strtok(buffer, ":");
@@ -247,8 +247,10 @@ void adiciona_participante() {
             if (!incompatibilidade_participante(eventos[sala][evento], participante)) {
                 if (eventos[sala][evento].n_participantes == MAXPARTICIPANTES)
                     printf("Impossivel adicionar participante. Evento %s ja tem 3 participantes.\n", descricao);
-                else
-                    strcpy(eventos[sala][evento].participantes[eventos[sala][evento].n_participantes++], participante);
+                else {
+                    strcpy(eventos[sala][evento].participantes[eventos[sala][evento].n_participantes], participante);
+                    strcpy(eventos[sala][evento].pessoas[++eventos[sala][evento].n_participantes], participante); /* atualiza o vetor pessoas */
+                }
             }
                 
         }
@@ -273,13 +275,16 @@ void remove_participante() {
         for (i = 0; i < eventos[sala][evento].n_participantes; i++)
             if (!strcmp(eventos[sala][evento].participantes[i], participante)) {
                 if (eventos[sala][evento].n_participantes == MINPARTICIPANTES)
-                    printf("Impossivel remover participante. Participante %s e o unico participante no evento %s.\n", participante, descricao);
+                    printf("Impossivel remover participante. Participante %s e o unico participante no evento %s.\n",
+                            participante, descricao);
                 else {
                     /* se o participante puder ser removido, decrementa-se o numero total de participantes nesse evento e,
-                    para todos os participantes a seguir a esse, move-se uma posicao para tras no vetor participantes */
+                        para todos os participantes a seguir a esse, move-se uma posicao para tras no vetor participantes */
                     eventos[sala][evento].n_participantes--;
-                    for (j = i; j < eventos[sala][evento].n_participantes; j++) /* i tem o indice do participante a remover */
+                    for (j = i; j < eventos[sala][evento].n_participantes; j++) {   /* i tem o indice do participante a remover */
                         strcpy(eventos[sala][evento].participantes[j], eventos[sala][evento].participantes[j + 1]);
+                        strcpy(eventos[sala][evento].pessoas[j + 1], eventos[sala][evento].pessoas[j + 2]); /* atualiza o vetor pessoas */
+                    }
                 }
             }
     }
@@ -307,7 +312,7 @@ Evento cria_evento() {
     token = strtok(NULL, ":");
     e.duracao = atoi(token);
     token = strtok(NULL, ":");
-    e.sala = atoi(token) - 1;   /* as salas 1 a 10 ocupam a posicao 0 a 9 do vetor eventos */
+    e.sala = atoi(token) - 1;           /* as salas 1 a 10 ocupam a posicao 0 a 9 do vetor eventos */
     token = strtok(NULL, ":");
     strcpy(e.responsavel, token);
     while ((token = strtok(NULL, ":"))!= NULL) strcpy(e.participantes[i++], token);
@@ -350,7 +355,8 @@ int incompatibilidade_pessoas(Evento e) {
                 for (p1 = 0; p1 < e.n_participantes + RESPONSAVEL; p1++) {
                     for (p2 = 0; p2 < eventos[sala][evento].n_participantes + RESPONSAVEL; p2++) {
                         if (!strcmp(e.pessoas[p1], eventos[sala][evento].pessoas[p2])) {
-                            printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", e.descricao, e.pessoas[p1]);
+                            printf("Impossivel agendar evento %s. Participante %s tem um evento sobreposto.\n", 
+                                    e.descricao, e.pessoas[p1]);
                             incompatibilidade++;
                         }
                     }
@@ -364,7 +370,7 @@ int incompatibilidade_pessoas(Evento e) {
 /* funcao que verifica se um participante esta disponivel nesse periodo de tempo 
 
 esta funcao e a incompatibilidade_pessoas sao semelhantes, mas esta verifica a incompatibilidade de um unico 
-participante e devolve um erro diferente, sendo preferivel  */
+participante e devolve um erro diferente, por isso optou-se por deixar numa funcao diferente */
 int incompatibilidade_participante(Evento e, char participante[MAXCHAR]) {
     int sala, evento, p, incompatibilidade = 0; /*incompatibilidade -> tem o valor 0 caso nao haja incompatibilidade */
 
@@ -388,7 +394,7 @@ int eventos_sobrepostos(Evento e1, Evento e2) {
     int incompatibilidade = 0;  /*incompatibilidade -> tem o valor 1 caso haja incompatibilidade */
 
     if (e2.dia == e1.dia && strcmp(e1.descricao, e2.descricao)) {   /* no caso da descricao ser igual, entao estamos a comparar
-                                                                    o mesmo evento e queremos descartar esse caso */
+                                                                        o mesmo evento e queremos descartar esse caso */
         if (e2.inicio <= e1.inicio && e2.fim > e1.inicio) incompatibilidade++;
         if (e1.inicio <= e2.inicio && e1.fim > e2.inicio) incompatibilidade++;
     }

@@ -1,3 +1,9 @@
+/*
+file: proj1.h
+autor: Susana Monteiro, 92560
+descricao: sistema de reserva de salas
+*/
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
