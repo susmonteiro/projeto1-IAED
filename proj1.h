@@ -15,6 +15,9 @@ descricao: sistema de reserva de salas
 #define SALAS 10                /* numero maximo de salas */ 
 #define MAXPORSALA 100          /* numero maximo de eventos por sala */
 #define MAXBUFFER 500           /* espaco suficiente para o input dado a funcao adiciona_evento */
+#define SEPARADOR ":"           /* caracter que separa as informacoes */
+#define ORIGEMTEMPO 2019        /* toma-se 2019 como o ano 0 */
+#define NUL '\0'                /* null character */
 #define SUCESSO 1
 #define INSUCESSO 0
 

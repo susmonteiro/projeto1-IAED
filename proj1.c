@@ -13,8 +13,10 @@ int ocup_sala[SALAS] = {0};                 /* guarda a ocupação de cada sala 
 
 int main() {
     char c;
-    for (;;) 
-        switch (c = getchar()) {
+    for (;;) {
+        c = getchar();
+        getchar();      /* ignora o espaco entre o comando e o resto do input */
+        switch (c) {
             case 'a':
                 adiciona_evento();
                 break;
@@ -48,6 +50,7 @@ int main() {
                 fprintf(stderr, "Invalid input: %d\n", c);
                 return EXIT_FAILURE;
         }
+    }
 }
 
 
@@ -57,11 +60,11 @@ int main() {
 /* funcao principal do comando a 
 recebe um novo evento e, se nao houver incompatibilidade de salas e de participantes,
 adiciona o evento a respetiva sala e incrementa a ocupacao dessa sala 
+nao tem parametros de entrada nem de saida 
 */
 void adiciona_evento() {
     Evento e;
 
-    getchar();              /* ignorar o espaco dado entre o comando e o resto do input */
     e = cria_evento();
     if (!incompatibilidade_sala(e))
         if (!incompatibilidade_pessoas(e))
@@ -69,7 +72,8 @@ void adiciona_evento() {
 }
 
 /* funcao principal do comando l
-lista todos os eventos por ordem cronológica */
+lista todos os eventos por ordem cronológica 
+nao tem parametros de entrada nem de saida */
 void lista_todos_eventos() {
     int sala, i, j;
     int min;            /* guarda a sala com o evento mais proximo */
@@ -77,7 +81,6 @@ void lista_todos_eventos() {
                             se todos os eventos de uma sala já tiverem sido impressos, o indice dessa sala e -1 */
     int fim = 0;        /* marca o fim da listagem de todos os eventos */
 
-    getchar();          /* ignorar o espaco dado entre o comando e o resto do input */
     /* ordenar cronologicamente todos os eventos de cada sala, individualmente */
     for (sala = 0; sala < SALAS; sala++) {
         qsort(eventos[sala], ocup_sala[sala], sizeof(Evento), compare);
@@ -107,7 +110,8 @@ void lista_todos_eventos() {
 }
 
 /* funcao principal do comando s 
-lista todos os eventos de uma dada sala por ordem cronológica */
+lista todos os eventos de uma dada sala por ordem cronológica 
+nao tem parametros de entrada nem de saida */
 void lista_eventos_sala() {
     int i, evento, sala;
 
@@ -129,15 +133,15 @@ void lista_eventos_sala() {
 }
 
 /* funcao principal do comando r
-apaga um evento */
+apaga um evento 
+nao tem parametros de entrada nem de saida */
 void apaga_evento() { 
     int i = 0;
     int sala = 0, evento = 0;
     char c, descricao[MAXCHAR];
 
-    c = getchar();  /* ignorar o espaco dado entre o comando e o resto do input */
     while ((c = getchar()) != '\n') descricao[i++] = c;
-    descricao[i] = '\0';
+    descricao[i] = NUL;
     if (procura_evento(descricao, &sala, &evento)) {
         /* colocar o ultimo evento da sala na posicao do evento a ser apagado e decrementar a ocupacao dessa sala */
         eventos[sala][evento] = eventos[sala][--ocup_sala[sala]];
@@ -145,18 +149,18 @@ void apaga_evento() {
 }
 
 /* funcao principal do comando i 
-altera a hora de início de um evento */
+altera a hora de início de um evento 
+nao tem parametros de entrada nem de saida */
 void altera_hora() {    
     char buffer[MAXBUFFER], descricao[MAXCHAR];
     char *token;
     int hora, sala = 0, evento = 0;
     Evento temp;    /* evento temporario, com as caracteristicas do novo evento */
 
-    getchar();      /* ignorar o espaco dado entre o comando e o resto do input */
     fgets(buffer, MAXBUFFER, stdin);
-    token = strtok(buffer, ":");
+    token = strtok(buffer, SEPARADOR);
     strcpy(descricao, token);
-    token = strtok(NULL, ":");
+    token = strtok(NULL, SEPARADOR);
     hora = atoi(token);
     if (procura_evento(descricao, &sala, &evento)) {
         temp = eventos[sala][evento];
@@ -172,7 +176,8 @@ void altera_hora() {
 }
 
 /* funcao principal do comando t 
-altera a duração de um evento */
+altera a duração de um evento 
+nao tem parametros de entrada nem de saida */
 void altera_duracao() { 
     
     char buffer[MAXBUFFER], descricao[MAXCHAR];
@@ -180,11 +185,10 @@ void altera_duracao() {
     int duracao, sala = 0, evento = 0;
     Evento temp;    /* evento temporario, com as caracteristicas do novo evento */
 
-    getchar();      /* ignorar o espaco dado entre o comando e o resto do input */
     fgets(buffer, MAXBUFFER, stdin);
-    token = strtok(buffer, ":");
+    token = strtok(buffer, SEPARADOR);
     strcpy(descricao, token);
-    token = strtok(NULL, ":");
+    token = strtok(NULL, SEPARADOR);
     duracao = atoi(token);
     if (procura_evento(descricao, &sala, &evento)) {
         temp = eventos[sala][evento];
@@ -198,18 +202,18 @@ void altera_duracao() {
 }
 
 /* funcao principal do comando m 
-muda a sala de um evento */
+muda a sala de um evento 
+nao tem parametros de entrada nem de saida */
 void muda_sala() {  
     char buffer[MAXBUFFER], descricao[MAXCHAR];
     char *token;
     int nsala, sala = 0, evento = 0;
     Evento temp;    /* evento temporario, com as caracteristicas do novo evento */
 
-    getchar();      /* ignorar o espaco dado entre o comando e o resto do input */
     fgets(buffer, MAXBUFFER, stdin);
-    token = strtok(buffer, ":");
+    token = strtok(buffer, SEPARADOR);
     strcpy(descricao, token);
-    token = strtok(NULL, ":");
+    token = strtok(NULL, SEPARADOR);
     nsala = atoi(token) - 1;
     if (procura_evento(descricao, &sala, &evento)) {
         temp = eventos[sala][evento];
@@ -223,18 +227,17 @@ void muda_sala() {
 
 /* funcao principal do comando A
 adiciona um participante a um evento
-*/
+nao tem parametros de entrada nem de saida */
 void adiciona_participante() {
     char buffer[MAXBUFFER], descricao[MAXCHAR], participante[MAXCHAR];
     char *token;
     int i, sala = 0, evento = 0, stop = 0;  /* stop: indica se o participante ja faz parte do evento ou nao */
 
-    getchar();                              /* ignorar o espaco dado entre o comando e o resto do input */
     fgets(buffer, MAXBUFFER, stdin);
-    buffer[strlen(buffer) - 1] = '\0';
-    token = strtok(buffer, ":");
+    buffer[strlen(buffer) - 1] = NUL;
+    token = strtok(buffer, SEPARADOR);
     strcpy(descricao, token);
-    token = strtok(NULL, ":");
+    token = strtok(NULL, SEPARADOR);
     strcpy(participante, token);
     if (procura_evento(descricao, &sala, &evento)) {
         /* verificar que o novo participante nao participava ja no evento */
@@ -249,7 +252,8 @@ void adiciona_participante() {
                     printf("Impossivel adicionar participante. Evento %s ja tem 3 participantes.\n", descricao);
                 else {
                     strcpy(eventos[sala][evento].participantes[eventos[sala][evento].n_participantes], participante);
-                    strcpy(eventos[sala][evento].pessoas[++eventos[sala][evento].n_participantes], participante); /* atualiza o vetor pessoas */
+                    /* atualiza o vetor pessoas */
+                    strcpy(eventos[sala][evento].pessoas[++eventos[sala][evento].n_participantes], participante); 
                 }
             }
                 
@@ -258,18 +262,18 @@ void adiciona_participante() {
 }
 
 /* funcao principal do comando R
-remove um participante de um evento */
+remove um participante de um evento 
+nao tem parametros de entrada nem de saida */
 void remove_participante() {
     char buffer[MAXBUFFER], descricao[MAXCHAR], participante[MAXCHAR];
     char *token;
     int i, j, sala = 0, evento = 0;
 
-    getchar();              /* ignorar o espaco dado entre o comando e o resto do input */
     fgets(buffer, MAXBUFFER, stdin);
-    buffer[strlen(buffer) - 1] = '\0';
-    token = strtok(buffer, ":");
+    buffer[strlen(buffer) - 1] = NUL;
+    token = strtok(buffer, SEPARADOR);
     strcpy(descricao, token);
-    token = strtok(NULL, ":");
+    token = strtok(NULL, SEPARADOR);
     strcpy(participante, token);
     if (procura_evento(descricao, &sala, &evento)) {
         for (i = 0; i < eventos[sala][evento].n_participantes; i++)
@@ -278,12 +282,14 @@ void remove_participante() {
                     printf("Impossivel remover participante. Participante %s e o unico participante no evento %s.\n",
                             participante, descricao);
                 else {
-                    /* se o participante puder ser removido, decrementa-se o numero total de participantes nesse evento e,
-                        para todos os participantes a seguir a esse, move-se uma posicao para tras no vetor participantes */
+                    /* se o participante puder ser removido, decrementa-se o numero total de participantes e, para todos
+                        os participantes a seguir a esse, move-se uma posicao para tras no vetor participantes */
                     eventos[sala][evento].n_participantes--;
-                    for (j = i; j < eventos[sala][evento].n_participantes; j++) {   /* i tem o indice do participante a remover */
+                    /* i tem o indice do participante a remover */
+                    for (j = i; j < eventos[sala][evento].n_participantes; j++) {
                         strcpy(eventos[sala][evento].participantes[j], eventos[sala][evento].participantes[j + 1]);
-                        strcpy(eventos[sala][evento].pessoas[j + 1], eventos[sala][evento].pessoas[j + 2]); /* atualiza o vetor pessoas */
+                        /* atualiza o vetor pessoas */
+                        strcpy(eventos[sala][evento].pessoas[j + 1], eventos[sala][evento].pessoas[j + 2]); 
                     }
                 }
             }
@@ -294,7 +300,8 @@ void remove_participante() {
 /*                        FUNCOES AUXILIARES                        */
 
 
-/* funcao que recebe o input para a criacao do evento e devolve o novo evento */
+/* funcao que recebe o input para a criacao do evento e devolve o novo evento 
+nao tem parametros de entrada e devolve o novo evento, a ser adicionado a tabela de eventos */
 Evento cria_evento() {
     char buffer[MAXBUFFER];
     char *token;
@@ -302,20 +309,20 @@ Evento cria_evento() {
     Evento e;
 
     fgets(buffer, MAXBUFFER, stdin);
-    buffer[strlen(buffer) - 1] = '\0';  /* ignorar o \n do final do input */
-    token = strtok(buffer, ":");
+    buffer[strlen(buffer) - 1] = NUL;  /* ignorar o \n do final do input */
+    token = strtok(buffer, SEPARADOR);
     strcpy(e.descricao, token);
-    token = strtok(NULL, ":");
+    token = strtok(NULL, SEPARADOR);
     e.dia = atoi(token);
-    token = strtok(NULL, ":");
+    token = strtok(NULL, SEPARADOR);
     e.tempo = atoi(token);
-    token = strtok(NULL, ":");
+    token = strtok(NULL, SEPARADOR);
     e.duracao = atoi(token);
-    token = strtok(NULL, ":");
+    token = strtok(NULL, SEPARADOR);
     e.sala = atoi(token) - 1;           /* as salas 1 a 10 ocupam a posicao 0 a 9 do vetor eventos */
-    token = strtok(NULL, ":");
+    token = strtok(NULL, SEPARADOR);
     strcpy(e.responsavel, token);
-    while ((token = strtok(NULL, ":"))!= NULL) strcpy(e.participantes[i++], token);
+    while ((token = strtok(NULL, SEPARADOR))!= NULL) strcpy(e.participantes[i++], token);
 
     /* calcular valor das restantes variaveis da struct Evento */
     e.n_participantes = i;                          /* numero de participantes do evento */
@@ -328,11 +335,12 @@ Evento cria_evento() {
         visto que nenhum evento pode ser agendado para uma data anterior a 2019 */
     e.data = e.tempo + (e.dia/1000000)*10000;       /* hora + dia */
     e.data += ((e.dia/10000)%100)*1000000;          /* hora + dia + mes */
-    e.data += ((e.dia%10000)-2019)*100000000;       /* hora + dia + mes + ano */
+    e.data += ((e.dia%10000)-ORIGEMTEMPO)*100000000;       /* hora + dia + mes + ano */
     return e;
 }
 
-/* funcao que avalia se a sala esta ocupada no periodo em causa */
+/* funcao que avalia se a sala esta ocupada no periodo em causa 
+recebe um evento e devolve a sua incompatibilidade, em termos de sala */
 int incompatibilidade_sala(Evento e) { 
     int evento;  
 
@@ -345,9 +353,11 @@ int incompatibilidade_sala(Evento e) {
     return INSUCESSO;
 }
 
-/* funcao que verifica se todos os participantes e o responsavel do evento estao disponiveis nesse periodo */
+/* funcao que verifica se todos os participantes e o responsavel do evento estao disponiveis nesse periodo 
+recebe um evento e devolve a sua incompatibilidade, em termos do seu responsavel e participantes */
 int incompatibilidade_pessoas(Evento e) {
-    int sala, evento, p1, p2, incompatibilidade = 0; /*incompatibilidade -> tem o valor 0 caso nao haja incompatibilidade */
+    int sala, evento, p1, p2, incompatibilidade = 0; 
+    /*incompatibilidade -> tem o valor 0 caso nao haja incompatibilidade */
 
     for (sala = 0; sala < SALAS; sala++) {
         for (evento = 0; evento < ocup_sala[sala]; evento++) {
@@ -368,6 +378,7 @@ int incompatibilidade_pessoas(Evento e) {
 }
 
 /* funcao que verifica se um participante esta disponivel nesse periodo de tempo 
+recebe um evento e um participante e devolve a incompatibilidade deste participante em relacao aos outros eventos
 
 esta funcao e a incompatibilidade_pessoas sao semelhantes, mas esta verifica a incompatibilidade de um unico 
 participante e devolve um erro diferente, por isso optou-se por deixar numa funcao diferente */
@@ -389,26 +400,31 @@ int incompatibilidade_participante(Evento e, char participante[MAXCHAR]) {
     return incompatibilidade;
 }
 
-/* avalia se dois eventos estao sobrepostos */
+/* avalia se dois eventos estao sobrepostos 
+recebe dois eventos e tem como parametro de saida um inteiro que indica se os eventos estao sobrepostos ou nao */
 int eventos_sobrepostos(Evento e1, Evento e2) {
     int incompatibilidade = 0;  /*incompatibilidade -> tem o valor 1 caso haja incompatibilidade */
 
-    if (e2.dia == e1.dia && strcmp(e1.descricao, e2.descricao)) {   /* no caso da descricao ser igual, entao estamos a comparar
-                                                                        o mesmo evento e queremos descartar esse caso */
+    if (e2.dia == e1.dia && strcmp(e1.descricao, e2.descricao)) {   
+    /* no caso da descricao ser igual, entao estamos a comparar o mesmo evento e queremos descartar esse caso */
         if (e2.inicio <= e1.inicio && e2.fim > e1.inicio) incompatibilidade++;
         if (e1.inicio <= e2.inicio && e1.fim > e2.inicio) incompatibilidade++;
     }
     return incompatibilidade;
 }
 
-/* funcao compare utilizada no qsort e que compara a data de dois eventos */
-int compare(const void *a, const void *b) { /*  */ 
+/* funcao compare utilizada no qsort e que compara a data de dois eventos 
+recebe dois pointers, de tipo indefinido, e devolve a comparacao de dois elementos 
+(negativo, se a for anterior a b, 0 se ocorrerem ao mesmo tempo e positivo se a for posterior a b) */
+int compare(const void *a, const void *b) {
     Evento *ia = (Evento *)a;
     Evento *ib = (Evento *)b;
     return ia->data - ib->data;
 }
 
-/* percorre todos os eventos de todas as salas ate encontrar o evento-objetivo */
+/* percorre todos os eventos de todas as salas ate encontrar o evento-objetivo 
+recebe uma descricao e o endereco das variaveis sala_coordenada e evento_coordenada, para que o seu valor possa
+ser alterado nesta funcao; retorna o sucesso ou insucesso na procura do evento */
 int procura_evento(char descricao[MAXCHAR], int *sala_coordenada, int *evento_coordenada) {
     int sala, evento;
 
